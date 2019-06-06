@@ -1,0 +1,18 @@
+namespace java com.didiglobal.thrift.sampleold
+
+struct CardsReqInfo {
+    1:required i64 driverId
+}
+
+struct CardsRespInfo {
+    1:required list<CardItem> cards;
+}
+
+struct CardItem {
+    1:required string name;
+    2:required list<string> contents;
+}
+
+service Sample {
+    CardsRespInfo getCards(1:CardsReqInfo cardsReqInfo);
+}
