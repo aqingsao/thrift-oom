@@ -1,7 +1,5 @@
-package com.didiglobal.thrift;
+package com.didiglobal.thrift.samplenew;
 
-import com.didiglobal.thrift.samplenew.Sample;
-import com.didiglobal.thrift.samplenew.SampleNewServer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -16,8 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
 
-class NewClientIntegrationTest {
-    private static final Logger LOGGER = LoggerFactory.getLogger(NewClientIntegrationTest.class);
+class NewClientNewServerTest {
+    private static final Logger LOGGER = LoggerFactory.getLogger(NewClientNewServerTest.class);
 
     private static SampleNewServer sampleNewServer;
     private static int port = 8111;

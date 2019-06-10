@@ -1,7 +1,6 @@
-package com.didiglobal.thrift;
+package com.didiglobal.thrift.sampleold;
 
 import com.didiglobal.thrift.samplenew.SampleNewServer;
-import com.didiglobal.thrift.sampleold.Sample;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -16,8 +15,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
 
-public class OldClientIntegrationTest {
-    private static final Logger LOGGER = LoggerFactory.getLogger(OldClientIntegrationTest.class);
+public class OldClientNewServerTest {
+    private static final Logger LOGGER = LoggerFactory.getLogger(OldClientNewServerTest.class);
 
     private static SampleNewServer sampleNewServer;
     private static int port = 8111;
@@ -43,8 +42,8 @@ public class OldClientIntegrationTest {
     }
 
     @Test
-    public void getCards_should_oom_at_concurrency_10() {
-        int concurrency = 10;
+    public void oldclient_should_oom_at_concurrency_10() {
+        int concurrency = 1;
         CountDownLatch latch = new CountDownLatch(concurrency);
         for (int i = 0; i < concurrency; i++) {
             new Worker(i, 5, latch).run();
@@ -57,15 +56,11 @@ public class OldClientIntegrationTest {
     }
 
     @Test
-    public void gradually_add_worker() {
-        int maxWorkers = 100;
-        CountDownLatch latch = new CountDownLatch(maxWorkers);
-        for (int i = 0; i < maxWorkers; i++) {
-            new Worker(i, Integer.MAX_VALUE, latch).run();
-            try {
-                Thread.sleep(10 * 1000);
-            } catch (InterruptedException e) {
-            }
+    public void oldclient_should_not_oom_with_strictRead_true_at_concurrency_10() {
+        int concurrency = 100;
+        CountDownLatch latch = new CountDownLatch(concurrency);
+        for (int i = 0; i < concurrency; i++) {
+            new Worker(i, 5, latch, true).run();
         }
         try {
             latch.await();
@@ -74,20 +69,27 @@ public class OldClientIntegrationTest {
         }
     }
 
+
     class Worker {
         private String name;
         private int count;
         private CountDownLatch latch;
+        private boolean strictRead;
 
         public Worker(int index, int count, CountDownLatch latch) {
+            this(index, count, latch, false);
+        }
+
+        public Worker(int index, int count, CountDownLatch latch, boolean strictRead) {
             this.name = "worker " + index;
             this.count = count;
             this.latch = latch;
+            this.strictRead = strictRead;
         }
 
         public void run() {
             new Thread(() -> {
-                Sample.Client client = aClient(port);
+                Sample.Client client = aClient(port, strictRead);
                 for (int i = 0; i < count; i++) {
                     try {
                         LOGGER.info(name + " sent " + i);
@@ -101,12 +103,12 @@ public class OldClientIntegrationTest {
             }).start();
         }
 
-        private Sample.Client aClient(int port) {
+        private Sample.Client aClient(int port, boolean strictRead) {
             try {
                 TTransport transport = new TSocket("127.0.0.1", port);
                 transport.open();
 
-                TProtocol protocol = new TBinaryProtocol(transport, true, true);
+                TProtocol protocol = new TBinaryProtocol(transport, strictRead, true);
                 return new Sample.Client(protocol);
             } catch (TTransportException e) {
                 throw new RuntimeException(e.getMessage(), e);

@@ -18,7 +18,7 @@ public class SampleNewServer {
         try {
             TServerSocket serverTransport = new TServerSocket(port);
             Sample.Processor processor = new Sample.Processor(new SampleService());
-            TBinaryProtocol.Factory protFactory = new TBinaryProtocol.Factory(true, true);
+            TBinaryProtocol.Factory protFactory = new TBinaryProtocol.Factory();
             TThreadPoolServer.Args args = new TThreadPoolServer.Args(serverTransport);
             args.processor(processor);
             args.protocolFactory(protFactory);
@@ -37,17 +37,13 @@ public class SampleNewServer {
         }
     }
 
-    public static void main(String[] args) {
-        new SampleNewServer().start(8111);
-    }
-
     static class SampleService implements Sample.Iface {
         @Override
         public Item getItem() {
             LOGGER.info("request received");
             Item item = new Item();
-            item.name = "name";
-            item.image = "image";
+            item.name = "name ";
+            item.image = "image ";
             item.contents = new ArrayList<>();
             for (int j = 0; j < 5; j++) {
                 item.contents.add("content " + j);
