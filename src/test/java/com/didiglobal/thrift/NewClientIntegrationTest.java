@@ -1,6 +1,5 @@
 package com.didiglobal.thrift;
 
-import com.didiglobal.thrift.samplenew.CardsReqInfo;
 import com.didiglobal.thrift.samplenew.Sample;
 import com.didiglobal.thrift.samplenew.SampleNewServer;
 import org.apache.thrift.TException;
@@ -9,9 +8,9 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +22,7 @@ class NewClientIntegrationTest {
     private static SampleNewServer sampleNewServer;
     private static int port = 8111;
 
-    @BeforeAll
+    @BeforeClass
     public static void beforeAll() throws InterruptedException {
         Runnable runnable = () -> {
             LOGGER.info("Before all: start thrift server on port " + port);
@@ -35,7 +34,7 @@ class NewClientIntegrationTest {
         Thread.sleep(3 * 1000);
     }
 
-    @AfterAll
+    @AfterClass
     public static void afterAll() {
         if (sampleNewServer != null) {
             sampleNewServer.stop();
@@ -74,8 +73,7 @@ class NewClientIntegrationTest {
                 for (int i = 0; i < count; i++) {
                     try {
                         LOGGER.info(name + " sent " + i);
-                        CardsReqInfo reqInfo = new CardsReqInfo(200001);
-                        client.getCards(reqInfo);
+                        client.getItem();
                         LOGGER.info(name + " received " + i);
                     } catch (TException e) {
                         LOGGER.info(name + " error " + i + ": " + e.getMessage());

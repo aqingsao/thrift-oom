@@ -1,14 +1,17 @@
 package com.didiglobal.thrift.sampleold;
 
-import org.apache.thrift.TException;
+import com.didiglobal.thrift.samplenew.SampleNewServer;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 
 public class SampleOldServer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SampleNewServer.class);
 
     private TServer server;
 
@@ -39,28 +42,18 @@ public class SampleOldServer {
         new SampleOldServer().start(8111);
     }
 
-    static class SampleService implements Sample.Iface {
-
+    static class SampleService implements com.didiglobal.thrift.sampleold.Sample.Iface {
         @Override
-        public CardsRespInfo getCards(CardsReqInfo cardsReqInfo) throws TException {
-            System.out.println("request received");
-            CardsRespInfo cardsRespInfo = new CardsRespInfo();
-            cardsRespInfo.cards = new ArrayList<>();
-            for (int i = 0; i < 5; i++) {
-                cardsRespInfo.cards.add(aCardItem(i));
-            }
-
-            return cardsRespInfo;
-        }
-
-        private CardItem aCardItem(long i) {
-            CardItem cardItem = new CardItem();
-            cardItem.name = "name " + i;
-            cardItem.contents = new ArrayList<>();
+        public Item getItem() {
+            LOGGER.info("request received");
+            Item item = new Item();
+            item.name = "name";
+            item.contents = new ArrayList<>();
             for (int j = 0; j < 5; j++) {
-                cardItem.contents.add("content " + j);
+                item.contents.add("content " + j);
             }
-            return cardItem;
+
+            return item;
         }
     }
 }

@@ -1,14 +1,16 @@
 package com.didiglobal.thrift.samplenew;
 
-import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 
 public class SampleNewServer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SampleNewServer.class);
 
     private TServer server;
 
@@ -22,7 +24,7 @@ public class SampleNewServer {
             args.protocolFactory(protFactory);
 
             server = new TThreadPoolServer(args);
-            System.out.println("Starting server on port " + port + " ...");
+            LOGGER.info("Starting server on port " + port + " ...");
             server.serve();
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage(), e);
@@ -40,28 +42,18 @@ public class SampleNewServer {
     }
 
     static class SampleService implements Sample.Iface {
-
         @Override
-        public CardsRespInfo getCards(CardsReqInfo cardsReqInfo) throws TException {
-            System.out.println("request received");
-            CardsRespInfo cardsRespInfo = new CardsRespInfo();
-            cardsRespInfo.cards = new ArrayList<>();
-            for (int i = 0; i < 5; i++) {
-                cardsRespInfo.cards.add(aCardItem(i));
-            }
-
-            return cardsRespInfo;
-        }
-
-        private CardItem aCardItem(long i) {
-            CardItem cardItem = new CardItem();
-            cardItem.name = "name " + i;
-            cardItem.image = "image " + i;
-            cardItem.contents = new ArrayList<>();
+        public Item getItem() {
+            LOGGER.info("request received");
+            Item item = new Item();
+            item.name = "name";
+            item.image = "image";
+            item.contents = new ArrayList<>();
             for (int j = 0; j < 5; j++) {
-                cardItem.contents.add("content " + j);
+                item.contents.add("content " + j);
             }
-            return cardItem;
+
+            return item;
         }
     }
 }

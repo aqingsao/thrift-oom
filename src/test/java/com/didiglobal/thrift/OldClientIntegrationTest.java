@@ -1,7 +1,6 @@
 package com.didiglobal.thrift;
 
 import com.didiglobal.thrift.samplenew.SampleNewServer;
-import com.didiglobal.thrift.sampleold.CardsReqInfo;
 import com.didiglobal.thrift.sampleold.Sample;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -9,21 +8,21 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
 
-class OldClientIntegrationTest {
+public class OldClientIntegrationTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(OldClientIntegrationTest.class);
 
     private static SampleNewServer sampleNewServer;
     private static int port = 8111;
 
-    @BeforeAll
+    @BeforeClass
     public static void beforeAll() throws InterruptedException {
         Runnable runnable = () -> {
             LOGGER.info("Before all: start thrift server on port " + port);
@@ -35,7 +34,7 @@ class OldClientIntegrationTest {
         Thread.sleep(3 * 1000);
     }
 
-    @AfterAll
+    @AfterClass
     public static void afterAll() {
         if (sampleNewServer != null) {
             sampleNewServer.stop();
@@ -45,10 +44,10 @@ class OldClientIntegrationTest {
 
     @Test
     public void getCards_should_oom_at_concurrency_10() {
-        int concurrency = 1;
+        int concurrency = 10;
         CountDownLatch latch = new CountDownLatch(concurrency);
         for (int i = 0; i < concurrency; i++) {
-            new Worker(i, Integer.MAX_VALUE, latch).run();
+            new Worker(i, 5, latch).run();
         }
         try {
             latch.await();
@@ -92,11 +91,10 @@ class OldClientIntegrationTest {
                 for (int i = 0; i < count; i++) {
                     try {
                         LOGGER.info(name + " sent " + i);
-                        CardsReqInfo reqInfo = new CardsReqInfo(200001);
-                        client.getCards(reqInfo);
+                        client.getItem();
                         LOGGER.info(name + " received " + i);
                     } catch (TException e) {
-                        LOGGER.info(name + " error " + i + ": " + e.getMessage());
+                        LOGGER.error(name + " error " + i + ": " + e.getMessage());
                     }
                 }
                 latch.countDown();
@@ -108,7 +106,7 @@ class OldClientIntegrationTest {
                 TTransport transport = new TSocket("127.0.0.1", port);
                 transport.open();
 
-                TProtocol protocol = new TBinaryProtocol(transport);
+                TProtocol protocol = new TBinaryProtocol(transport, true, true);
                 return new Sample.Client(protocol);
             } catch (TTransportException e) {
                 throw new RuntimeException(e.getMessage(), e);
