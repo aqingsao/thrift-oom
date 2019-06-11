@@ -15,13 +15,13 @@ public abstract class SampleWorkers<C extends org.apache.thrift.TServiceClient> 
     private final String serverHost;
     private final int serverPort;
     private final int workerCount;
-    private final int totalRequestCount;
+    private final int requestPerWorker;
 
-    public SampleWorkers(String serverHost, int serverPort, int workerCount, int totalRequestCount) {
+    public SampleWorkers(String serverHost, int serverPort, int workerCount, int requestPerWorker) {
         this.serverHost = serverHost;
         this.serverPort = serverPort;
         this.workerCount = workerCount;
-        this.totalRequestCount = totalRequestCount;
+        this.requestPerWorker = requestPerWorker;
     }
 
     protected C aClient(String serverHost, int serverPort) {
@@ -37,21 +37,18 @@ public abstract class SampleWorkers<C extends org.apache.thrift.TServiceClient> 
 
     public void startAll() {
         CountDownLatch latch = new CountDownLatch(workerCount);
-        int requestPerWorker = totalRequestCount / workerCount;
-        int remainder = totalRequestCount % workerCount;
 
         for (int i = 0; i < workerCount; i++) {
-            int requestOfThisWorker = i < remainder ? requestPerWorker + 1 : requestPerWorker;
+            C client = aClient(this.serverHost, this.serverPort);
             Thread t = new Thread(() -> {
-                C client = aClient(this.serverHost, this.serverPort);
-                for (int j = 0; j < requestOfThisWorker; j++) {
+                for (int j = 0; j < requestPerWorker; j++) {
                     long seq = INDEX.getAndIncrement();
                     try {
-                        LOGGER.info("sent {}", seq);
+                        LOGGER.info("sent {}, seq {}", j, seq);
                         sendRequest(client, seq);
-                        LOGGER.info("received {}", seq);
+                        LOGGER.info("received {}, seq {}", j, seq);
                     } catch (Exception e) {
-                        LOGGER.info("error received {}: {}", seq, e.getMessage());
+                        LOGGER.info("error received {}, seq {}: {}", j, seq, e.getMessage());
                     }
                 }
                 latch.countDown();
@@ -64,7 +61,6 @@ public abstract class SampleWorkers<C extends org.apache.thrift.TServiceClient> 
         } catch (InterruptedException e) {
             LOGGER.error(e.getMessage(), e);
         }
-
     }
 
     protected abstract C createClient(TTransport transport);

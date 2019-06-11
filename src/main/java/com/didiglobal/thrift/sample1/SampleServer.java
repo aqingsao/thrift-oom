@@ -14,7 +14,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class SampleServer {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SampleServer.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(SampleServer.class);
 
     private TServer server;
     private int port;
