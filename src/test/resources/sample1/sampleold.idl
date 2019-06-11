@@ -1,0 +1,13 @@
+namespace java com.didiglobal.thrift.sample1.sampleold
+
+struct Items{
+     1:required list<Item> items;
+}
+struct Item {
+    1:required string name;
+    2:required list<string> contents;
+}
+
+service Sample {
+    Items getItems();
+}

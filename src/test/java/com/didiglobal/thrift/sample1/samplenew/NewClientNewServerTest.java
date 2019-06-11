@@ -1,6 +1,5 @@
-package com.didiglobal.thrift.sampleold;
+package com.didiglobal.thrift.sample1.samplenew;
 
-import com.didiglobal.thrift.samplenew.SampleNewServer;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -15,8 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
 
-public class OldClientNewServerTest {
-    private static final Logger LOGGER = LoggerFactory.getLogger(OldClientNewServerTest.class);
+public class NewClientNewServerTest {
+    private static final Logger LOGGER = LoggerFactory.getLogger(NewClientNewServerTest.class);
 
     private static SampleNewServer sampleNewServer;
     private static int port = 8111;
@@ -42,11 +41,11 @@ public class OldClientNewServerTest {
     }
 
     @Test
-    public void oldclient_should_oom_at_concurrency_10() {
+    public void newclient_getCards_should_not_oom_at_concurrency_10() {
         int concurrency = 1;
         CountDownLatch latch = new CountDownLatch(concurrency);
         for (int i = 0; i < concurrency; i++) {
-            new Worker(i, 5, latch).run();
+            new Worker(i, Integer.MAX_VALUE, latch).run();
         }
         try {
             latch.await();
@@ -54,61 +53,40 @@ public class OldClientNewServerTest {
             throw new RuntimeException(e.getMessage(), e);
         }
     }
-
-    @Test
-    public void oldclient_should_not_oom_with_strictRead_true_at_concurrency_10() {
-        int concurrency = 100;
-        CountDownLatch latch = new CountDownLatch(concurrency);
-        for (int i = 0; i < concurrency; i++) {
-            new Worker(i, 5, latch, true).run();
-        }
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
-    }
-
 
     class Worker {
         private String name;
         private int count;
         private CountDownLatch latch;
-        private boolean strictRead;
 
         public Worker(int index, int count, CountDownLatch latch) {
-            this(index, count, latch, false);
-        }
-
-        public Worker(int index, int count, CountDownLatch latch, boolean strictRead) {
             this.name = "worker " + index;
             this.count = count;
             this.latch = latch;
-            this.strictRead = strictRead;
         }
 
         public void run() {
             new Thread(() -> {
-                Sample.Client client = aClient(port, strictRead);
+                Sample.Client client = aClient(port);
                 for (int i = 0; i < count; i++) {
                     try {
                         LOGGER.info(name + " sent " + i);
-                        client.getItem();
+                        client.getItems();
                         LOGGER.info(name + " received " + i);
                     } catch (TException e) {
-                        LOGGER.error(name + " error " + i + ": " + e.getMessage());
+                        LOGGER.info(name + " error " + i + ": " + e.getMessage());
                     }
                 }
                 latch.countDown();
             }).start();
         }
 
-        private Sample.Client aClient(int port, boolean strictRead) {
+        private Sample.Client aClient(int port) {
             try {
                 TTransport transport = new TSocket("127.0.0.1", port);
                 transport.open();
 
-                TProtocol protocol = new TBinaryProtocol(transport, strictRead, true);
+                TProtocol protocol = new TBinaryProtocol(transport);
                 return new Sample.Client(protocol);
             } catch (TTransportException e) {
                 throw new RuntimeException(e.getMessage(), e);

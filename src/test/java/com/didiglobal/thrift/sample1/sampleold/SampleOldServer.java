@@ -1,5 +1,6 @@
-package com.didiglobal.thrift.samplenew;
+package com.didiglobal.thrift.sample1.sampleold;
 
+import com.didiglobal.thrift.sample1.samplenew.SampleNewServer;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
@@ -9,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 
-public class SampleNewServer {
+public class SampleOldServer {
     private static final Logger LOGGER = LoggerFactory.getLogger(SampleNewServer.class);
 
     private TServer server;
@@ -18,13 +19,13 @@ public class SampleNewServer {
         try {
             TServerSocket serverTransport = new TServerSocket(port);
             Sample.Processor processor = new Sample.Processor(new SampleService());
-            TBinaryProtocol.Factory protFactory = new TBinaryProtocol.Factory();
+            TBinaryProtocol.Factory protFactory = new TBinaryProtocol.Factory(true, true);
             TThreadPoolServer.Args args = new TThreadPoolServer.Args(serverTransport);
             args.processor(processor);
             args.protocolFactory(protFactory);
 
             server = new TThreadPoolServer(args);
-            LOGGER.info("Starting server on port " + port + " ...");
+            System.out.println("Starting server on port " + port + " ...");
             server.serve();
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage(), e);
@@ -37,19 +38,28 @@ public class SampleNewServer {
         }
     }
 
-    static class SampleService implements Sample.Iface {
+    public static void main(String[] args) {
+        new SampleOldServer().start(8111);
+    }
+
+    static class SampleService implements com.didiglobal.thrift.sample1.sampleold.Sample.Iface {
+        int index = 0;
         @Override
-        public Item getItem() {
-            LOGGER.info("request received");
-            Item item = new Item();
-            item.name = "name ";
-            item.image = "image ";
-            item.contents = new ArrayList<>();
-            for (int j = 0; j < 5; j++) {
-                item.contents.add("content " + j);
+        public Items getItems() {
+            index++;
+            LOGGER.info("server response {}", index);
+            Items items = new Items();
+            for (int i = 0; i < 5; i++) {
+                Item item = new Item();
+                item.name = "name " + i;
+                item.contents = new ArrayList<>();
+                for (int j = 0; j < 5; j++) {
+                    item.contents.add("content " + i + " " + j);
+                }
+                items.addToItems(item);
             }
 
-            return item;
+            return items;
         }
     }
 }

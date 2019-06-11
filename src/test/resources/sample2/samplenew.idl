@@ -1,4 +1,4 @@
-namespace java com.didiglobal.thrift.samplenew
+namespace java com.didiglobal.thrift.sample1.samplenew
 
 struct Item {
     1:required string name;
