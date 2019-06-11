@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class SampleServer {
@@ -47,6 +48,7 @@ public abstract class SampleServer {
 
     private ExecutorService aCustomExecutorService() {
         CustomThreadFactory threadFactory = new CustomThreadFactory("server");
+        new ThreadPoolExecutor()
         return Executors.newScheduledThreadPool(1, threadFactory);
 
     }
@@ -58,20 +60,27 @@ public abstract class SampleServer {
     }
 
     static class CustomThreadFactory implements ThreadFactory {
-        private final String poolName;
-        private final String namePrefix;
-        private static final AtomicInteger poolNumber = new AtomicInteger(1);
+        private final AtomicInteger poolNumber = new AtomicInteger(1);
         private final AtomicInteger threadNumber = new AtomicInteger(1);
+        private final String namePrefix;
+        private final ThreadGroup group;
 
         public CustomThreadFactory(String poolName) {
-            this.poolName = poolName;
-            namePrefix = this.poolName + "-" + poolNumber.getAndIncrement() +
-                    "-";
+            namePrefix = poolName + "-" + poolNumber.getAndIncrement() + "-";
+            SecurityManager s = System.getSecurityManager();
+            group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
         }
 
         @Override
         public Thread newThread(Runnable r) {
-            return new Thread(r, namePrefix + threadNumber.getAndIncrement());
+            Thread t = new Thread(group, r, namePrefix + threadNumber.getAndIncrement());
+            if (t.isDaemon()) {
+                t.setDaemon(false);
+            }
+            if (t.getPriority() != Thread.NORM_PRIORITY) {
+                t.setPriority(Thread.NORM_PRIORITY);
+            }
+            return t;
         }
     }
 }

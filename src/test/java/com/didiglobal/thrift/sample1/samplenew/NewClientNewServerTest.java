@@ -18,28 +18,7 @@ public class NewClientNewServerTest {
 
     @BeforeClass
     public static void beforeAll() throws InterruptedException {
-//        sampleServer = new SampleServer(port) {
-//            @Override
-//            protected TBaseProcessor createProcessor() {
-//                return new Sample.Processor(id -> {
-//                    LOGGER.info("server receives {}", id);
-//                    Items items = new Items();
-//                    items.setId(id);
-//                    for (int i = 0; i < 5; i++) {
-//                        Item item = new Item();
-//                        item.name = "name " + i;
-//                        item.image = "image " + i;
-//                        item.contents = new ArrayList<>();
-//                        for (int j = 0; j < 5; j++) {
-//                            item.contents.add("content " + i + " " + j);
-//                        }
-//                        items.addToItems(item);
-//                    }
-//
-//                    return items;
-//                });
-//            }
-//        }.start();
+        sampleServer = new SampleNewServer(port).start();
         Thread.sleep(3 * 1000);
     }
 
