@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class OldClientNewServerTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(OldClientNewServerTest.class);
@@ -29,17 +30,12 @@ public class OldClientNewServerTest {
             sampleNewServer.start(port);
         };
         Thread t = new Thread(runnable, "server");
-        t.start();
-        Thread.sleep(3 * 1000);
+//        t.start();
+//        Thread.sleep(3 * 1000);
     }
 
     @AfterClass
     public static void afterAll() {
-        try {
-            Thread.sleep(3600 * 1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         if (sampleNewServer != null) {
             sampleNewServer.stop();
         }
@@ -65,7 +61,7 @@ public class OldClientNewServerTest {
         int concurrency = 100;
         CountDownLatch latch = new CountDownLatch(concurrency);
         for (int i = 0; i < concurrency; i++) {
-            new Worker(i, 15000, latch, true).run();
+            new Worker(i, 10000, latch, true).run();
         }
         try {
             latch.await();
@@ -75,6 +71,7 @@ public class OldClientNewServerTest {
     }
 
 
+    private static AtomicLong index = new AtomicLong();
     class Worker {
         private String name;
         private int count;
@@ -96,12 +93,13 @@ public class OldClientNewServerTest {
             new Thread(() -> {
                 Sample.Client client = aClient(port, strictRead);
                 for (int i = 0; i < count; i++) {
+                    long value = index.getAndIncrement();
                     try {
-                        LOGGER.info(name + " sent " + i);
+                        LOGGER.info(name + " sent " + value);
                         client.getItems();
-                        LOGGER.info(name + " received " + i);
+                        LOGGER.info(name + " received " + value);
                     } catch (TException e) {
-                        LOGGER.error(name + " error " + i + ": " + e.getMessage());
+                        LOGGER.error(name + " error " + value + ": " + e.getMessage());
                     }
                 }
                 latch.countDown();
@@ -110,7 +108,7 @@ public class OldClientNewServerTest {
 
         private Sample.Client aClient(int port, boolean strictRead) {
             try {
-                TTransport transport = new TSocket("127.0.0.1", port);
+                TTransport transport = new TSocket("172.24.28.9", port);
                 transport.open();
 
                 TProtocol protocol = new TBinaryProtocol(transport, strictRead, true);
