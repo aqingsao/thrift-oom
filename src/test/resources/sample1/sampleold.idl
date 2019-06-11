@@ -1,7 +1,8 @@
 namespace java com.didiglobal.thrift.sample1.sampleold
 
 struct Items{
-     1:required list<Item> items;
+     1:required i64 id;
+     2:required list<Item> items;
 }
 struct Item {
     1:required string name;
@@ -9,5 +10,5 @@ struct Item {
 }
 
 service Sample {
-    Items getItems();
+    Items getItems(1:i64 id);
 }

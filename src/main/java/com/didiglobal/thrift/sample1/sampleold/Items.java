@@ -11,16 +11,19 @@ package com.didiglobal.thrift.sample1.sampleold;
 public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, java.io.Serializable, Cloneable, Comparable<Items> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("Items");
 
-  private static final org.apache.thrift.protocol.TField ITEMS_FIELD_DESC = new org.apache.thrift.protocol.TField("items", org.apache.thrift.protocol.TType.LIST, (short)1);
+  private static final org.apache.thrift.protocol.TField ID_FIELD_DESC = new org.apache.thrift.protocol.TField("id", org.apache.thrift.protocol.TType.I64, (short)1);
+  private static final org.apache.thrift.protocol.TField ITEMS_FIELD_DESC = new org.apache.thrift.protocol.TField("items", org.apache.thrift.protocol.TType.LIST, (short)2);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ItemsStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ItemsTupleSchemeFactory();
 
+  public long id; // required
   public java.util.List<Item> items; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    ITEMS((short)1, "items");
+    ID((short)1, "id"),
+    ITEMS((short)2, "items");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -35,7 +38,9 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // ITEMS
+        case 1: // ID
+          return ID;
+        case 2: // ITEMS
           return ITEMS;
         default:
           return null;
@@ -77,9 +82,13 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
   }
 
   // isset id assignments
+  private static final int __ID_ISSET_ID = 0;
+  private byte __isset_bitfield = 0;
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.ID, new org.apache.thrift.meta_data.FieldMetaData("id", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.ITEMS, new org.apache.thrift.meta_data.FieldMetaData("items", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT            , "Item"))));
@@ -91,9 +100,12 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
   }
 
   public Items(
+    long id,
     java.util.List<Item> items)
   {
     this();
+    this.id = id;
+    setIdIsSet(true);
     this.items = items;
   }
 
@@ -101,6 +113,8 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
    * Performs a deep copy on <i>other</i>.
    */
   public Items(Items other) {
+    __isset_bitfield = other.__isset_bitfield;
+    this.id = other.id;
     if (other.isSetItems()) {
       java.util.List<Item> __this__items = new java.util.ArrayList<Item>(other.items.size());
       for (Item other_element : other.items) {
@@ -116,7 +130,32 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
 
   @Override
   public void clear() {
+    setIdIsSet(false);
+    this.id = 0;
     this.items = null;
+  }
+
+  public long getId() {
+    return this.id;
+  }
+
+  public Items setId(long id) {
+    this.id = id;
+    setIdIsSet(true);
+    return this;
+  }
+
+  public void unsetId() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __ID_ISSET_ID);
+  }
+
+  /** Returns true if field id is set (has been assigned a value) and false otherwise */
+  public boolean isSetId() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __ID_ISSET_ID);
+  }
+
+  public void setIdIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __ID_ISSET_ID, value);
   }
 
   public int getItemsSize() {
@@ -160,6 +199,14 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
 
   public void setFieldValue(_Fields field, java.lang.Object value) {
     switch (field) {
+    case ID:
+      if (value == null) {
+        unsetId();
+      } else {
+        setId((java.lang.Long)value);
+      }
+      break;
+
     case ITEMS:
       if (value == null) {
         unsetItems();
@@ -173,6 +220,9 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
 
   public java.lang.Object getFieldValue(_Fields field) {
     switch (field) {
+    case ID:
+      return getId();
+
     case ITEMS:
       return getItems();
 
@@ -187,6 +237,8 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
     }
 
     switch (field) {
+    case ID:
+      return isSetId();
     case ITEMS:
       return isSetItems();
     }
@@ -208,6 +260,15 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
     if (this == that)
       return true;
 
+    boolean this_present_id = true;
+    boolean that_present_id = true;
+    if (this_present_id || that_present_id) {
+      if (!(this_present_id && that_present_id))
+        return false;
+      if (this.id != that.id)
+        return false;
+    }
+
     boolean this_present_items = true && this.isSetItems();
     boolean that_present_items = true && that.isSetItems();
     if (this_present_items || that_present_items) {
@@ -224,6 +285,8 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
   public int hashCode() {
     int hashCode = 1;
 
+    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(id);
+
     hashCode = hashCode * 8191 + ((isSetItems()) ? 131071 : 524287);
     if (isSetItems())
       hashCode = hashCode * 8191 + items.hashCode();
@@ -239,6 +302,16 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
 
     int lastComparison = 0;
 
+    lastComparison = java.lang.Boolean.valueOf(isSetId()).compareTo(other.isSetId());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetId()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.id, other.id);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     lastComparison = java.lang.Boolean.valueOf(isSetItems()).compareTo(other.isSetItems());
     if (lastComparison != 0) {
       return lastComparison;
@@ -269,6 +342,10 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
     java.lang.StringBuilder sb = new java.lang.StringBuilder("Items(");
     boolean first = true;
 
+    sb.append("id:");
+    sb.append(this.id);
+    first = false;
+    if (!first) sb.append(", ");
     sb.append("items:");
     if (this.items == null) {
       sb.append("null");
@@ -282,6 +359,7 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
 
   public void validate() throws org.apache.thrift.TException {
     // check for required fields
+    // alas, we cannot check 'id' because it's a primitive and you chose the non-beans generator.
     if (items == null) {
       throw new org.apache.thrift.protocol.TProtocolException("Required field 'items' was not present! Struct: " + toString());
     }
@@ -298,6 +376,8 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
     try {
+      // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+      __isset_bitfield = 0;
       read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
     } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);
@@ -322,7 +402,15 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
           break;
         }
         switch (schemeField.id) {
-          case 1: // ITEMS
+          case 1: // ID
+            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+              struct.id = iprot.readI64();
+              struct.setIdIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 2: // ITEMS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
                 org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
@@ -349,6 +437,9 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
       iprot.readStructEnd();
 
       // check for required fields of primitive type, which can't be checked in the validate method
+      if (!struct.isSetId()) {
+        throw new org.apache.thrift.protocol.TProtocolException("Required field 'id' was not found in serialized data! Struct: " + toString());
+      }
       struct.validate();
     }
 
@@ -356,6 +447,9 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
+      oprot.writeFieldBegin(ID_FIELD_DESC);
+      oprot.writeI64(struct.id);
+      oprot.writeFieldEnd();
       if (struct.items != null) {
         oprot.writeFieldBegin(ITEMS_FIELD_DESC);
         {
@@ -385,6 +479,7 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
     @Override
     public void write(org.apache.thrift.protocol.TProtocol prot, Items struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+      oprot.writeI64(struct.id);
       {
         oprot.writeI32(struct.items.size());
         for (Item _iter4 : struct.items)
@@ -397,6 +492,8 @@ public class Items implements org.apache.thrift.TBase<Items, Items._Fields>, jav
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, Items struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+      struct.id = iprot.readI64();
+      struct.setIdIsSet(true);
       {
         org.apache.thrift.protocol.TList _list5 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
         struct.items = new java.util.ArrayList<Item>(_list5.size);
