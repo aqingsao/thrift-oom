@@ -58,7 +58,7 @@ public class OldClientNewServerTest {
 
     @Test
     public void oldclient_should_not_oom_with_strictRead_true_at_concurrency_10() {
-        int concurrency = 100;
+        int concurrency = 1;
         CountDownLatch latch = new CountDownLatch(concurrency);
         for (int i = 0; i < concurrency; i++) {
             new Worker(i, 10000, latch, true).run();
@@ -108,7 +108,7 @@ public class OldClientNewServerTest {
 
         private Sample.Client aClient(int port, boolean strictRead) {
             try {
-                TTransport transport = new TSocket("172.24.28.9", port);
+                TTransport transport = new TSocket("172.24.42.30", port);
                 transport.open();
 
                 TProtocol protocol = new TBinaryProtocol(transport, strictRead, true);
