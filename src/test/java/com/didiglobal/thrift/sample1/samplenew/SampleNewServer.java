@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class SampleNewServer {
     private static final Logger LOGGER = LoggerFactory.getLogger(SampleNewServer.class);
@@ -37,14 +38,18 @@ public class SampleNewServer {
         }
     }
 
+    public static void main(String[] args) {
+        new SampleNewServer().start(8111);
+    }
+
     static class SampleService implements Sample.Iface {
-        int index = 0;
+        AtomicLong index = new AtomicLong();
 
         @Override
         public Items getItems() {
-            index++;
-            LOGGER.info("server response {}", index);
+            LOGGER.info("server receives {}", index.getAndIncrement());
             Items items = new Items();
+            items.setIndex(index.get());
             for (int i = 0; i < 5; i++) {
                 Item item = new Item();
                 item.name = "name " + i;
