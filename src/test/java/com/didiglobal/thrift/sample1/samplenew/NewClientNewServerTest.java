@@ -31,7 +31,7 @@ public class NewClientNewServerTest {
     }
 
     @Test
-    public void newclient_getItems_should_not_oom_at_concurrency_10() {
+    public void should_not_oom_at_concurrency_10() {
         int concurrency = 2;
         int requestPerWorker = 500;
         new SampleWorkers<Sample.Client>("172.24.28.9", port, concurrency, requestPerWorker) {
