@@ -2,7 +2,7 @@ package com.didiglobal.thrift.sample1.sampleold;
 
 import com.didiglobal.thrift.sample1.SampleServer;
 import com.didiglobal.thrift.sample1.SampleWorkers;
-import org.apache.thrift.TBaseProcessor;
+import com.didiglobal.thrift.sample1.samplenew.SampleNewServer;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TTransport;
@@ -12,8 +12,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-
 public class OldClientNewServerTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(OldClientNewServerTest.class);
 
@@ -22,28 +20,8 @@ public class OldClientNewServerTest {
 
     @BeforeClass
     public static void beforeAll() throws InterruptedException {
-        sampleServer = new SampleServer(port) {
-            @Override
-            protected TBaseProcessor createProcessor() {
-                return new Sample.Processor(id -> {
-                    LOGGER.info("server receives {}", id);
-                    Items items = new Items();
-                    items.setId(id);
-                    for (int i = 0; i < 5; i++) {
-                        Item item = new Item();
-                        item.name = "name " + i;
-                        item.contents = new ArrayList<>();
-                        for (int j = 0; j < 5; j++) {
-                            item.contents.add("content " + i + " " + j);
-                        }
-                        items.addToItems(item);
-                    }
-
-                    return items;
-                });
-            }
-        }.start();
-//        Thread.sleep(3 * 1000);
+        sampleServer = new SampleNewServer(port).start();
+        Thread.sleep(3 * 1000);
     }
 
     @AfterClass

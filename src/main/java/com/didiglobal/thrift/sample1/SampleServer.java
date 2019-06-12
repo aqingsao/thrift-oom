@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,7 +34,7 @@ public abstract class SampleServer {
                 TThreadPoolServer.Args args = new TThreadPoolServer.Args(serverTransport);
                 args.processor(createProcessor());
                 args.protocolFactory(protFactory);
-                args.executorService(aCustomExecutorService());
+                args.executorService(aCustomExecutorService(args));
 
                 server = new TThreadPoolServer(args);
                 LOGGER.info("Starting server on port " + port + " ...");
@@ -46,11 +46,14 @@ public abstract class SampleServer {
         return this;
     }
 
-    private ExecutorService aCustomExecutorService() {
+    private ExecutorService aCustomExecutorService(TThreadPoolServer.Args args) {
+        SynchronousQueue<Runnable> executorQueue = new SynchronousQueue<>();
         CustomThreadFactory threadFactory = new CustomThreadFactory("server");
-        new ThreadPoolExecutor()
-        return Executors.newScheduledThreadPool(1, threadFactory);
-
+        return new ThreadPoolExecutor(args.minWorkerThreads,
+                args.maxWorkerThreads,
+                args.stopTimeoutVal,
+                args.stopTimeoutUnit,
+                executorQueue, threadFactory);
     }
 
     public void stop() {
