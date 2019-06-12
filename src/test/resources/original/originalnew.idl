@@ -1,0 +1,19 @@
+namespace java com.didiglobal.thrift.original
+
+struct Items {
+    1:required list<Item> cards;
+}
+
+struct Item {
+    1:required i64 activityId;
+    2:required string image;
+    3:required string bg_image; //新增字段
+    4:required string link;
+    5:required string title;
+    6:required list<string> contents;
+}
+
+
+service Original {
+    Items getActivityCards ();
+}
