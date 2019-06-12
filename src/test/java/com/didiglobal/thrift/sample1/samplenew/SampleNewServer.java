@@ -19,17 +19,18 @@ public class SampleNewServer extends SampleServer {
     }
 
     @Override
-    protected TBaseProcessor createProcessor() {
+    protected TBaseProcessor aCustomizedProcessor() {
         return new Sample.Processor(id -> {
             LOGGER.info("server receives {}", id);
             Items items = new Items();
             items.setId(id);
+
             for (int i = 0; i < 5; i++) {
                 Item item = new Item();
                 item.name = "name " + i;
                 item.image = "image " + i;
                 item.contents = new ArrayList<>();
-                for (int j = 0; j < 5; j++) {
+                for (int j = 0; j < i + 1; j++) {
                     item.contents.add("content " + i + " " + j);
                 }
                 items.addToItems(item);

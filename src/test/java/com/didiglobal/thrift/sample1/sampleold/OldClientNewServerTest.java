@@ -7,7 +7,6 @@ import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TTransport;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,12 +16,6 @@ public class OldClientNewServerTest {
 
     private static SampleServer sampleServer;
     private static int port = 8111;
-
-    @BeforeClass
-    public static void beforeAll() throws InterruptedException {
-        sampleServer = new SampleNewServer(port).start();
-        Thread.sleep(3 * 1000);
-    }
 
     @AfterClass
     public static void afterAll() {
@@ -34,6 +27,9 @@ public class OldClientNewServerTest {
 
     @Test
     public void oldclient_should_oom_at_concurrency_10() {
+        sampleServer = new SampleNewServer(port).start();
+        sleepInSeconds(3);
+
         int concurrency = 10;
         int requestPerWorker = 50;
         new SampleWorkers<Sample.Client>("127.0.0.1", port, concurrency, requestPerWorker) {
@@ -93,8 +89,11 @@ public class OldClientNewServerTest {
      */
 
     @Test
-    public void oldclient_should_not_oom_if_clear_inputstream_at_concurrency_10() {
-        int concurrency = 10;
+    public void oldclient_should_not_oom_if_use_TFramedTransport_at_concurrency_10() {
+        sampleServer = new SampleNewServer(port).withTFramedTransport(true).start();
+        sleepInSeconds(3);
+
+        int concurrency = 1;
         int requestPerWorker = 50;
         new SampleWorkers<Sample.Client>("127.0.0.1", port, concurrency, requestPerWorker) {
             @Override
@@ -107,6 +106,14 @@ public class OldClientNewServerTest {
             protected void sendRequest(Sample.Client client, long seq) throws Exception {
                 client.getItems(seq);
             }
-        }.startAll();
+        }.withTFramedTransport(true).startAll();
+    }
+
+    private void sleepInSeconds(int seconds) {
+        try {
+            Thread.sleep(seconds * 1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

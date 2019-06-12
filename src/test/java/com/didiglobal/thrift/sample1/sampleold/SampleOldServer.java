@@ -19,7 +19,7 @@ public class SampleOldServer extends SampleServer {
     }
 
     @Override
-    protected TBaseProcessor createProcessor() {
+    protected TBaseProcessor aCustomizedProcessor() {
         return new Sample.Processor(id -> {
             LOGGER.info("server receives {}", id);
             Items items = new Items();

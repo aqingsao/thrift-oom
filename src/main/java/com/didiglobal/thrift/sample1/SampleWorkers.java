@@ -1,5 +1,6 @@
 package com.didiglobal.thrift.sample1;
 
+import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -16,6 +17,7 @@ public abstract class SampleWorkers<C extends org.apache.thrift.TServiceClient> 
     private final int serverPort;
     private final int workerCount;
     private final int requestPerWorker;
+    private boolean tFramedTransport = false;
 
     public SampleWorkers(String serverHost, int serverPort, int workerCount, int requestPerWorker) {
         this.serverHost = serverHost;
@@ -26,7 +28,12 @@ public abstract class SampleWorkers<C extends org.apache.thrift.TServiceClient> 
 
     protected C aClient(String serverHost, int serverPort) {
         try {
-            TTransport transport = new TSocket(serverHost, serverPort);
+            TTransport transport;
+            if (tFramedTransport) {
+                transport = new TFramedTransport(new TSocket(serverHost, serverPort));
+            } else {
+                transport = new TSocket(serverHost, serverPort);
+            }
             transport.open();
 
             return createClient(transport);
@@ -66,4 +73,9 @@ public abstract class SampleWorkers<C extends org.apache.thrift.TServiceClient> 
     protected abstract C createClient(TTransport transport);
 
     protected abstract void sendRequest(C client, long seq) throws Exception;
+
+    public SampleWorkers<C> withTFramedTransport(boolean tFramedTransport) {
+        this.tFramedTransport = tFramedTransport;
+        return this;
+    }
 }
