@@ -30,7 +30,7 @@ public class NewClientNewServerTest {
 
         int concurrency = 1;
         int requestPerWorker = 500;
-        new SampleWorkers<Sample.Client>("172.24.28.9", port, concurrency, requestPerWorker) {
+        new SampleWorkers<Sample.Client>("127.0.0.1", port, concurrency, requestPerWorker) {
             @Override
             protected Sample.Client createClient(TTransport transport) {
                 TProtocol protocol = new TBinaryProtocol(transport);
