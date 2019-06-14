@@ -1,58 +1,56 @@
 Thrift OOM
 =============
 
-Introduction
-============
-A serious issue occured in prod env and finally it came out to be the changement of some fields in an IDL file, one of the many clients crashed due to the use of an old client version.
+A serious issue occured in prod env and finally it came out to be the changement of some fields in an IDL file, one of the clients was still using an older version and crashed due to OOM.
 
-Root cause of this issue could be stated as：“Return value of the interface is a list, element of which is a struct and has 5 fields. A new field is added to the middle of all fields but one client still use an older version”, as shown in image below:
-![]()
+Senario os this issue could be stated as：“Return value of the interface is a list, element of which is a struct object and has 5 fields. A new field is added to the middle of the struct”, as shown in the image below.
+![oldclient_newserver](doc/images/oldclient_newversion.png)
 
-Even if there's a mismatch between old client and new server, the suggested "worst" condition is to just print errors, whereas crash of the client leads to a disaster. 
+Even if there's a mismatch between old client and new server, the worst condition we could imagine is to just print errors, crash of the client is absolutely not bearable. 
 
-
-Reproduce OOM issue
+To reproduce OOM issue
 ============
 
 This issue could be reproduced with a shorter IDL, as shown below:
+![newfield](doc/images/newfield.jpg)
 
-
-You could do it yourself by downloading this project and run test case: OldClientNewServerTest.oldclient_should_oom_at_concurrency_10
-In this case we use TSocket and TBinaryProtocol with thrift 0.11.0, a concurrency of 100 or even 10 could cause OOM soon.
-
+You could work it out yourself by downloading this project and run test case: OldClientNewServerTest.oldclient_should_oom_at_concurrency_10
+In this case we use TSocket and TBinaryProtocol with thrift 0.11.0, a concurrency of 100 or even 10 could cause OOM.
+![oom](doc/images/oom.jpg)
 
 Why there's an OOM issue
 ============
-As we know Thrift will skip if a field type mismatches or if it's redundant, but if an exception is thrown, all subsequent methods including skip methods would be ignored.
-The current request fails as we expected, but the connection will be reused by the next request, where disaster happens.
-Thrift reads a TMessage object and first of all it's a readI32() which represents the length of the method's name. Unbelievable the length could be as large as 184549632, which is about 176M. And this explains why OOM occurs even at a concurrency of 10.
+As we know Thrift tries to consume all data in inputstream by skipping fields that are redundant or have a type mismatch. At the same time Thrift validates every struct object and throws an exception if it's invalid.
+It conflicts because Thrift won't consume subsequent fields if there's an exception.  
+
+The current Thrift RPC request fails on such an exception, just as expected, but nothing is done to the underlying inputstream, which means there still exists some redundant data, and cursor points to some middle position of the inputstream.
+
+Trouble comes to the next request who reuses this connection: After receiving responses, Thrift starts to read data hoping they are fresh data from server side, but actually they are redundant ones from a previous request. 
+If you are familiar with Thrift deserialization you know that it always starts with a readI32() method, which means the length of the method's name. Unbelievable the length could be as large as 184549632, which is about 176M. This explains why OOM occurs even at a concurrency of 10.
+![why_oom](doc/images/why_oom.jpg)
 
 
 Why it's 184549632(176M)?
 ============
-
 The way Thrift deserializes is exactly like a stack, as shown in the image below:
+![exception](doc/images/exception.png)
 
-
-But as said before, thrift will validate every struct object and an exception will be thrown if it's not valid.
-
-
-It's a pity that Thrift does nothing to the inputstream on such an error, and cursor still points to a middle position of inputstream, which is the position of the next element's readStructBegin, if you understand that readStructBegin() in TBinaryProtocol uses zero space, so it actually points to readFieldBegin().
-
-If we take some time to analyze the four bytes that the readI32() method read, they would be:
+But if an exception is thrown, everything is different as we said before, cursor in inputstream now points to a middle position, so what kind a value will read from the always first method readI32()?
+Take some time to think about out IDL file, it will read the next Item element if there isn't any exceptions, so the first four bytes should be:
 
 byte type = TType.STRING; // byte 0：type of element Item's name field, which is TType.String with a value of 11
 short id = 1;             // byte 1 and 2：seq of element Item's name field with a value of 1
 int size = 7;             // byte 3：first byte of size of element Item's name field Item with a value of 6
-We write a simple program to verify that the value is exactly 184549632:
 
+We write a simple program to verify that these four bytes have an exact value of 184549632:
+![184549632](doc/images/184549632.png)
 
-There's both a certainty and uncerntainty for the number of 184549632, it would be different if the next field is not a String. 
+There's both a certainty and uncerntainty for the number of 184549632, it would be different if the next field is not a String or have a different seq id.
 
-Another IDL file named sample2 in this project will give another number 83888648M, which is about 8M and will not cause OOM.
+Another IDL file 'sample2' will allocate a byte array of 83888648, which is about 8M, and no OOM happens.
+![8388864](doc/images/8388864.png)
 
-Lucky enough? No, the client side will read data of 8388864 bytes from inputstream, and of course the connection is blocked.
-
+Lucky enough? No, the client side will read 8388864 bytes of data from inputstream, so it's waiting and waiting and the connection is blocked.
 
 How to fix it
 ============
@@ -63,47 +61,37 @@ There are several methods to do this but the method below should be a simple and
 1. Provide a safeClear() method with the default behavior to do nothing in TTransport
 2. Clear inputstream in TSocket, and change a little in several other classes.
 3. Call safeClear() in TServiceClient
+![TServiceClint.java](doc/images/TServiceClient.java.jpg)
+![TTransport.java](doc/images/TTransport.java.jpg)
+![TSocket.java](doc/images/TSocket.java.jpg)
 
 I did a load test on my Macbook Air, which has 100 concurrencies and last 15 minutes with a total request number of 160 millions and an average data size of 0.5K, both client and server sides work fine.
 
-
-Any quick workarounds?
+Is strictread mode a workarounds?
 ============
-Method 1: strictread mode
+Thrift provides a variety of configurations. Dive into Thrift's source code and it looks like using strictRead is a simple method to avoid OOM:
 
-Thrift众多的配置项中，有严格读（strictRead）、严格写(strictWrite)两个选项，由于严格读默认值为False，改为true是否可以呢？如果OK的话，只需要修改配置而无需修改源码，这将会是最轻量级的方案。查看Thrift源码，如果命中严格读会提前报错，避免下方readStringBody()方法分配太大的内存空间：
+And this is how to use strictRead：
 
-
-
-严格读（strictRead）的修改方式如下：
-
-// 很多情况下大家如此使用TProtocol创建连接，此时strictWrite值为true，而、strictRead值为false；
+// In most cases people don't specifiy strictRead, which has a default value of false
 TProtocol protocol = new TBinaryProtocol(transport);
-// 严格读：直接创建TBinaryProtocol，传入参数
+// Speicify strictRead mode in TBinaryProtocol
 TProtocol protocol = new TBinaryProtocol(transport, true, true);
-// 严格读：使用Protocol工厂模式，传入参数
+// Speicify strictRead mode in TBinaryProtocol.Factory
 TBinaryProtocol.Factory protFactory = new TBinaryProtocol.Factory(true, true);
-经测试验证，使用严格读之后，客户端还会报错，但OOM问题消失了！“貌似”这也是我们想要的结果，压测效果如何呢？
 
-在Macbook Air上，使用100个并发进行验证，5分钟之后，发送大约56万请求，客户端出现大量的SocketException(Broken pipe)，甚至客户端开始宕死。
+A quick test shows that it won't OOM, but it deserves a load test? Lots of SocketException(Broken pipe) would happen after 5 minutes with a concurency of 100, and even that the client seems to be down.
 
-究其原因，strictRead虽然避免了创建大量字节数组，但抛异常时thrift也未对输入流做任何清理，会产生误读取残余数据，甚至引起连接阻塞。
+Reason is that strictRead mode avoids to create a large size of byte array, but it still don't clear any data and will finally crash as there'a more and more repsonses from server side without being consumed.
 
-所以使用严格读，并不能解决这一问题，同样thrift提供了另外一个配置项“读取字符串或字节的最大长度（stringLengthLimit_）”，也不能解决该问题。
+Is TFramedTransport a workarounds?
+============
 
-思路二：使用短连接
+TFramedTransport use buffers for a whole frame of data and theoreticlaly it will not block any data from server side。But a load test shows that using TFramedTransport will also OOM at a low concurrency.
 
-改用短连接，发送每个请求都创建一个连接，这样可以避免请求之间的数据污染，但毫无疑问也会带来较大的性能损失，通常不建议。
+Reason is that although TFramedTransport reads all data from underlying TSocket, it does not clear data in the readBuffer at a validate exception, which finally leads to a crash of OOM.
 
-思路三：使用TFramedTransport
-
-TFramedTransport对整帧数据使用了缓存，一次性把底层Socket中Inputstream中的数据完全读到了readBuffer，理论上不会出现OOM了。
-
-验证了一把，很可惜还是会OOM，原因是抛异常之后，TFramedTransport中的readBuffer中的数据未做清理，下次请求会错误读取readBuffer中的残余数据。
-
-如果你想验证，可以运行OldClientNewServerTest中的测试用例：oldclient_should_oom_if_use_TFramedTransport_at_concurrency_10
-
-小结：使用严格读、限制字符串长度等配置方式，使用TFramedTransport都不能完美解决问题，要么OOM，要么连接被阻塞。而短连接对性能影响较大，在Thrift中也很少使用。
+You could run this test case to verify yourself: OldClientNewServerTest.oldclient_should_oom_if_use_TFramedTransport_at_concurrency_10.
 
 A summary
 ============
