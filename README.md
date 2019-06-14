@@ -12,7 +12,22 @@ To reproduce OOM issue
 ============
 
 This issue could be reproduced with a shorter IDL, as shown below:
-![newfield](doc/images/newfield.jpg)
+```
+namespace java com.didiglobal.thrift.sample1.samplenew
+ 
+ struct Items{
+      1:required i64 id;
+      2:required list<Item> items;
+ }
+ struct Item {
+     1:required string name;
+     2:required string image;
+     3:required list<string> contents;
+ }
+ service Sample {
+     Items getItems(1:i64 id);
+ }
+```
 
 You could work it out yourself by downloading this project and run test case: OldClientNewServerTest.oldclient_should_oom_at_concurrency_10
 In this case we use TSocket and TBinaryProtocol with thrift 0.11.0, a concurrency of 100 or even 10 could cause OOM.
@@ -26,8 +41,8 @@ It conflicts because Thrift won't consume subsequent fields if there's an except
 The current Thrift RPC request fails on such an exception, just as expected, but nothing is done to the underlying inputstream, which means there still exists some redundant data, and cursor points to some middle position of the inputstream.
 
 Trouble comes to the next request who reuses this connection: After receiving responses, Thrift starts to read data hoping they are fresh data from server side, but actually they are redundant ones from a previous request. 
-If you are familiar with Thrift deserialization you know that it always starts with a readI32() method, which means the length of the method's name. Unbelievable the length could be as large as 184549632, which is about 176M. This explains why OOM occurs even at a concurrency of 10.
-![why_oom](doc/images/why_oom.jpg)
+If you are familiar with Thrift deserialization you know that it always starts with a readI32() method, which means the length of the method's name. Unbelievable the length could be as large as **184549632**, which is about **176M**, that's why OOM occurs at a concurrency of **10**.
+![why_oom](doc/images/why_oom.png)
 
 
 Why it's 184549632(176M)?
@@ -37,11 +52,11 @@ The way Thrift deserializes is exactly like a stack, as shown in the image below
 
 But if an exception is thrown, everything is different as we said before, cursor in inputstream now points to a middle position, so what kind a value will read from the always first method readI32()?
 Take some time to think about out IDL file, it will read the next Item element if there isn't any exceptions, so the first four bytes should be:
-
+```
 byte type = TType.STRING; // byte 0：type of element Item's name field, which is TType.String with a value of 11
 short id = 1;             // byte 1 and 2：seq of element Item's name field with a value of 1
 int size = 7;             // byte 3：first byte of size of element Item's name field Item with a value of 6
-
+```
 We write a simple program to verify that these four bytes have an exact value of 184549632:
 ![184549632](doc/images/184549632.png)
 
@@ -72,14 +87,14 @@ Is strictread mode a workarounds?
 Thrift provides a variety of configurations. Dive into Thrift's source code and it looks like using strictRead is a simple method to avoid OOM:
 
 And this is how to use strictRead：
-
+```
 // In most cases people don't specifiy strictRead, which has a default value of false
 TProtocol protocol = new TBinaryProtocol(transport);
 // Speicify strictRead mode in TBinaryProtocol
 TProtocol protocol = new TBinaryProtocol(transport, true, true);
 // Speicify strictRead mode in TBinaryProtocol.Factory
 TBinaryProtocol.Factory protFactory = new TBinaryProtocol.Factory(true, true);
-
+```
 A quick test shows that it won't OOM, but it deserves a load test? Lots of SocketException(Broken pipe) would happen after 5 minutes with a concurency of 100, and even that the client seems to be down.
 
 Reason is that strictRead mode avoids to create a large size of byte array, but it still don't clear any data and will finally crash as there'a more and more repsonses from server side without being consumed.
@@ -93,13 +108,17 @@ Reason is that although TFramedTransport reads all data from underlying TSocket,
 
 You could run this test case to verify yourself: OldClientNewServerTest.oldclient_should_oom_if_use_TFramedTransport_at_concurrency_10.
 
+Fortunately TFramedTransport provides a clear() method, and if it's called after each request, OOM will not happen.
+
 A summary
 ============
 
-1. There's a chance of unexpected consequences if IDL versions of client and server mismatch, it could happen to both client and server, the consequence could be: misalignment of fields、connections being blocked, or even OOM.   
+1. If fields are added or removed and client has a mismatch version with server, there would be unexpected consequences: misalignment of fields、connections being blocked, or even OOM.   
 
 2. This bug exists in a chain of thrift versions from 0.8(or maybe earlier) up to the latest 0.13.0-snapshot
 
-4. No quick workarounds available：strictRead mode or restrictStringLength does not work; TFramedTransport does work either unless manually call clear() method to clear readBuff. The best way is to remember: Keep IDL files up to dates between clients and servers
+4. No quick workarounds available：strictRead mode or restrictStringLength does not work; TFramedTransport does work either unless manually call clear() method to clear readBuff. 
 
-5. The proposed method：make sure to clean residual bytes in TSocket's inputstream or TFramedTransport's buffread, a load test of 100 concurrencies has proven it
+5. The proposed method：Thrift itself makes sure to clean redundant data in TSocket's inputstream or TFramedTransport's buffread after each request, a load test of 100 concurrencies has proven it
+
+6. The best way ever is to remember: client and server always use the same version of IDL files
