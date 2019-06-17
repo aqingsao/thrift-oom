@@ -6,11 +6,17 @@ import com.didiglobal.thrift.sample1.samplenew.SampleNewServer;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TType;
+import org.apache.thrift.transport.TFramedTransport;
+import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class OldClientNewServerTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(OldClientNewServerTest.class);
@@ -49,6 +55,9 @@ public class OldClientNewServerTest {
 
     @Test
     public void oldclient_should_not_oom_if_strictRead_true_at_concurrency_10() {
+        sampleServer = new SampleNewServer(port).start();
+        sleepInSeconds(3);
+
         int concurrency = 10;
         int requestPerWorker = 50;
         new SampleWorkers<Sample.Client>("127.0.0.1", port, concurrency, requestPerWorker) {
@@ -63,6 +72,42 @@ public class OldClientNewServerTest {
                 client.getItems(seq);
             }
         }.startAll();
+    }
+
+    @Test
+    public void oldclient_should_not_oom_if_not_keepalive_at_concurrency_10() {
+        sampleServer = new SampleNewServer(port).withTFramedTransport(true).start();
+        sleepInSeconds(3);
+
+        TransportFactory<TFramedTransport> transportFactory = new TransportFactory<>(Collections.singletonList("127.0.0.1"), port, 10 * 1000, (String host1, int port1, int timeout1) -> new TFramedTransport(new TSocket(host1, port1, timeout1)));
+        int workerCount = 100;
+        int requestPerWorker = 10000;
+        AtomicLong INDEX = new AtomicLong(0);
+        CountDownLatch latch = new CountDownLatch(workerCount);
+
+        for (int i = 0; i < workerCount; i++) {
+            Thread t = new Thread(() -> {
+                for (int j = 0; j < requestPerWorker; j++) {
+                    long seq = INDEX.getAndIncrement();
+                    try (TFramedTransport transport = transportFactory.makeObject().getObject()) {
+                        Sample.Client client = new Sample.Client(new TBinaryProtocol(transport));
+                        LOGGER.info("sent {}, seq {}", j, seq);
+                        client.getItems(seq);
+                        LOGGER.info("received {}, seq {}", j, seq);
+                    } catch (Exception e) {
+                        LOGGER.info("error received {}, seq {}: {}", j, seq, e.getMessage());
+                    }
+                }
+                latch.countDown();
+            }, "worker-" + i);
+            t.start();
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            LOGGER.error(e.getMessage(), e);
+        }
     }
 
     /**
